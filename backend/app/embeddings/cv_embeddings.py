@@ -4,7 +4,7 @@ from typing import List, Any
 
 from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain_core.documents import Document
 from supabase import create_client, Client
 
@@ -12,7 +12,7 @@ load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 
 class SupabaseVectorDB:
-    def __init__(self, client: Client, embeddings: HuggingFaceEmbeddings,
+    def __init__(self, client: Client, embeddings: FastEmbedEmbeddings,
                  table: str = "documents", match_fn: str = "match_documents"):
         self.client = client
         self.embeddings = embeddings
@@ -41,8 +41,8 @@ class SupabaseVectorDB:
 
 
 class CVEmbeddingPipeline:
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2", chunk_size: int = 1000, chunk_overlap: int = 200):
-        self.embeddings = HuggingFaceEmbeddings(model_name=model_name)
+    def __init__(self, model_name: str = "BAAI/bge-small-en-v1.5", chunk_size: int = 1000, chunk_overlap: int = 200):
+        self.embeddings = FastEmbedEmbeddings(model_name=model_name)
         self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
