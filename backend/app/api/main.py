@@ -10,22 +10,13 @@ from fastapi.responses import FileResponse
 from app.api.routes.applications import router as applications_router
 from app.api.routes.cv import router as cv_router
 from app.api.routes.jobs import router as jobs_router
-from app.embeddings.cv_embeddings import CVEmbeddingPipeline
-from app.embeddings.job_embeddings import JobEmbeddingPipeline
-from app.rag.cv_rag import CVCopilot
-from app.rag.job_rag import JobDescriptionRAG
 
 STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "static"
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    cv_pipeline = CVEmbeddingPipeline()
-    job_pipeline = JobEmbeddingPipeline()
-    app.state.cv_pipeline = cv_pipeline
-    app.state.cv_copilot = CVCopilot(pipeline=cv_pipeline)
-    app.state.job_rag = JobDescriptionRAG(cv_pipeline=cv_pipeline, job_pipeline=job_pipeline)
-    yield
+    yield  # Models load lazily on first request — keeps startup instant
 
 
 app = FastAPI(title="CV Copilot API", version="1.0.0", lifespan=lifespan)
@@ -49,11 +40,9 @@ async def health_check():
     return {"status": "ok", "service": "cv-copilot"}
 
 
-# Serve the Next.js static export — only active when the static/ dir exists (i.e. in Docker)
 if STATIC_DIR.exists():
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str):
-        # Try: static/<path>/index.html  (trailingSlash export)
         for candidate in [
             STATIC_DIR / full_path / "index.html",
             STATIC_DIR / full_path,
@@ -65,4 +54,4 @@ if STATIC_DIR.exists():
 
 
 if __name__ == "__main__":
-    uvicorn.run("app.api.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app.api.main:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))

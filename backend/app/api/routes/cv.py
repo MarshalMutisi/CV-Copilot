@@ -2,31 +2,29 @@ import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File
-
 from langchain_community.document_loaders import PyPDFLoader
 
+from app.api.deps import get_cv_pipeline, get_cv_copilot
 from app.schemas.cv import AskRequest, AskResponse
 from app.rag.cv_rag import CVCopilot
 
 router = APIRouter(prefix="/api/cv", tags=["cv"])
 
 
-def _get_copilot(request: Request, groq_api_key: str | None) -> CVCopilot:
+def _get_copilot(groq_api_key: str | None) -> CVCopilot:
     if groq_api_key:
-        return CVCopilot(pipeline=request.app.state.cv_pipeline, api_key=groq_api_key)
-    return request.app.state.cv_copilot
+        return CVCopilot(pipeline=get_cv_pipeline(), api_key=groq_api_key)
+    return get_cv_copilot()
 
 
 @router.get("/status")
-def cv_status(request: Request):
-    pipeline = request.app.state.cv_pipeline
-    return pipeline.status()
+def cv_status():
+    return get_cv_pipeline().status()
 
 
 @router.delete("/")
-def delete_cv(request: Request):
-    pipeline = request.app.state.cv_pipeline
-    pipeline.clear()
+def delete_cv():
+    get_cv_pipeline().clear()
     return {"message": "CV removed successfully"}
 
 
@@ -42,10 +40,9 @@ async def upload_cv(request: Request, file: UploadFile = File(...)):
 
     try:
         docs = PyPDFLoader(str(tmp_path)).load()
-        # Attach filename to metadata so status() can surface it
         for doc in docs:
             doc.metadata["source"] = file.filename
-        pipeline = request.app.state.cv_pipeline
+        pipeline = get_cv_pipeline()
         pipeline.clear()
         chunks = pipeline.chunk_documents(docs)
         pipeline.store(chunks)
@@ -58,7 +55,7 @@ async def upload_cv(request: Request, file: UploadFile = File(...)):
 @router.post("/ask", response_model=AskResponse)
 def ask_cv(request: Request, body: AskRequest):
     groq_key = request.headers.get("X-Groq-API-Key")
-    copilot = _get_copilot(request, groq_key)
+    copilot = _get_copilot(groq_key)
     try:
         answer = copilot.ask(body.question, k=body.k)
     except Exception as e:
