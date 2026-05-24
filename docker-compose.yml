@@ -1,0 +1,11 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: https://lhcwunnfvcztcfnilpqu.supabase.co
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoY3d1bm5mdmN6dGNmbmlscHF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0Mzk4OTcsImV4cCI6MjA5NTAxNTg5N30.lY7qvacHzlX6rSm2llj2y5AE4YUjRC9NeTKq7ZL4Zzc
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
